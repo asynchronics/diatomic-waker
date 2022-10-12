@@ -1,0 +1,27 @@
+name: Loom
+
+on:
+  workflow_dispatch:
+
+jobs:
+  loom:
+    name: Test suite (Loom, default preemption bounds)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Run cargo test (Loom)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib --release
+        env:
+          RUSTFLAGS: --cfg diatomic_waker_loom
