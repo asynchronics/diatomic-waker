@@ -2,27 +2,21 @@
 //!
 //! `diatomic-waker` is similar to [Atomic Waker][atomic-waker] in that it
 //! enables concurrent updates and notifications to a wrapped `Waker`. Unlike
-//! the latter, however, it does not use spinlocks[^spinlocks] and is faster, in
-//! particular when the consumer is notified periodically rather than just once.
-//! It can in particular be used as a very fast, single-consumer [eventcount] to
-//! turn a non-blocking data structure into an asynchronous one (see MPSC
-//! channel receiver example).
+//! the latter, however, it does not use spin-locks[^spin_locks] and is faster,
+//! in particular when the consumer is notified periodically rather than just
+//! once. It can in particular be used as a very fast, single-consumer
+//! [eventcount] to turn a non-blocking data structure into an asynchronous one
+//! (see MPSC channel receiver example).
 //!
 //! The API distinguishes between the entity that registers wakers
-//! ([`WakeSink`]) and the possibly many entities that notify the waker
-//! ([`WakeSource`]).
-//!
-//! Note that `WakeSink` and `WakeSource` readily store a shared
-//! [`DiatomicWaker`](primitives::DiatomicWaker) within an
-//! [`Arc`](std::sync::Arc). You may instead elect to allocate a `DiatomicWaker`
-//! yourself, but will then need to ensure by other means that waker
-//! registration cannot be performed concurrently.
+//! ([`WakeSink`](WakeSink)) and the possibly many entities that notify the
+//! waker ([`WakeSource`](WakeSource)).
 //!
 //! [atomic-waker]: https://docs.rs/atomic-waker/latest/atomic_waker/
 //! [eventcount]:
 //!     https://www.1024cores.net/home/lock-free-algorithms/eventcounts
-//! [^spinlocks]: The implementation of [AtomicWaker][atomic-waker] yields to the
-//!     runtime on contention, which is in effect an executor-mediated spinlock.
+//! [^spin_locks]: The implemention of [AtomicWaker][atomic-waker] yields to the
+//!     runtime on contention, which is in effect a (rather expensive) spinlock.
 //!
 //! # Examples
 //!

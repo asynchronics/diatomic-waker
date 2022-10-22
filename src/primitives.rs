@@ -6,21 +6,21 @@ use std::sync::atomic::Ordering;
 use std::task::{Context, Poll, Waker};
 
 use crate::loom_exports::cell::UnsafeCell;
-use crate::loom_exports::sync::atomic::AtomicUsize;
+use crate::loom_exports::sync::atomic::{self, AtomicUsize};
 
 // The state of the waker is tracked by the following bit flags:
 //
 // * INDEX [I]: slot index of the current waker, if any (0 or 1)
 // * UPDATE [U]: an updated waker has been registered in the redundant slot at
 //   index 1 - INDEX
-// * REGISTERED [R]: a waker is registered and awaits a notification
+// * REGISTERED [R]: a waker is registered and await a notification
 // * LOCKED [L]: a notifier has taken the notifier lock and is in the process of
 //   sending a notification
 // * NOTIFICATION [N]: a notifier has failed to take the lock when a waker was
 //   registered and has requested the notifier holding the lock to send a
 //   notification on its behalf (implies REGISTERED and LOCKED).
 //
-// Summary of valid states:
+// Summary of possible states:
 //
 // |  N   L   R   U   I  |
 // |---------------------|
@@ -44,7 +44,7 @@ const NOTIFICATION: usize = 0b10000;
 /// It is almost always preferable to use [`WakeSink`](crate::WakeSink) and
 /// [`WakeSource`](crate::WakeSource) instead as these enforce safety by
 /// ensuring that a `WakeSink` cannot be used concurrently from multiple
-/// threads. The only advantage of this primitive is that it does not require
+/// threads. The only advantage of this primitive is that it des not require
 /// allocation on construction, unlike `WakeSink` and `WakeSource` which store a
 /// shared `DiatomicWaker` within an [`Arc`](std::sync::Arc).
 #[derive(Debug)]
@@ -158,16 +158,16 @@ impl DiatomicWaker {
             // 2) another notifier has tried and failed to take the lock, and
             // 3) `unregister` was never called.
             //
-            // Ordering: Acquire ordering synchronizes with the Release and
-            // AcqRel RMWs in `try_lock` (called by `notify`) and ensures that
-            // either the predicate set before the call to `notify` will be
-            // visible after the call to `register`, or the registered waker
-            // will be visible during the call to `notify` (or both). Note that
-            // Release ordering is not necessary since the waker has not changed
-            // and this RMW takes part in a release sequence headed by the
-            // initial registration of the waker.
-            self.state.fetch_or(REGISTERED, Ordering::Acquire);
+            // Ordering: Relaxed ordering is sufficient since the waker has not
+            // changed and the fence below ensures that any predicate set before
+            // the notification will be visible after the call to `register`.
+            self.state.fetch_or(REGISTERED, Ordering::Relaxed);
 
+            // This fence synchronizes with the other fence in `notify` and
+            // ensures that either the predicate set before the call to `notify`
+            // will be visible after the call to `register`, or the registered
+            // waker will be visible during the call to `notify` (or both).
+            atomic::fence(Ordering::SeqCst);
             return;
         }
 
@@ -180,7 +180,7 @@ impl DiatomicWaker {
         // Note that only the thread registering the waker can set `REGISTERED`
         // and `UPDATE` so even if the state is stale, observing `REGISTERED` or
         // `UPDATE` as cleared guarantees that such flag is and will remain
-        // cleared until this thread sets them.
+        // cleared.
         if state & (UPDATE | REGISTERED) == (UPDATE | REGISTERED) {
             // Clear the `REGISTERED` and `NOTIFICATION` flags.
             //
@@ -210,15 +210,19 @@ impl DiatomicWaker {
 
         // Make the waker visible.
         //
-        // Ordering: Acquire ordering synchronizes with the Release and AcqRel
-        // RMWs in `try_lock` (called by `notify`) and ensures that either the
-        // predicate set before the call to `notify` will be visible after the
-        // call to `register`, or the registered waker will be visible during
-        // the call to `notify` (or both). Since the waker has been modified
-        // above, Release ordering is also necessary to synchronize with the
-        // AcqRel RMW in `try_lock` (success case) and ensure that the
-        // modification to the waker is fully visible when notifying.
-        self.state.fetch_or(UPDATE | REGISTERED, Ordering::AcqRel);
+        // Ordering: Since the waker has been modified above, Release ordering
+        // is necessary to synchronize with the Acquire load in `notify` and
+        // ensure that the modification to the waker is fully visible when
+        // notifying. Acquire ordering is not necessary, however, because the
+        // fence below ensures that any predicate set before the notification
+        // will be visible after the call to `register`.
+        self.state.fetch_or(UPDATE | REGISTERED, Ordering::Release);
+
+        // This fence synchronizes with the other fence in `notify` and ensures
+        // that either the predicate set before the call to `notify` will be
+        // visible after the call to `register`, or the registered waker will be
+        // visible during the call to `notify` (or both).
+        atomic::fence(Ordering::SeqCst);
     }
 
     /// Unregisters the waker.
@@ -238,9 +242,10 @@ impl DiatomicWaker {
         // |  n  l  r  u  i  |  0  l  0  u  i  |
 
         // Modify the state. Note that the waker is not dropped: caching it can
-        // avoid a waker drop/cloning cycle (typically, 2 RMWs) in the frequent
-        // case when the next waker to be registered will be the same as the one
-        // being unregistered.
+        // avoid a waker drop/cloning cycle (typically, 2 atomic
+        // read-modify-write operations) in the frequent case when the next
+        // waker to be registered will be the same as the one being
+        // unregistered.
         //
         // Ordering: no waker was modified so Relaxed ordering is sufficient.
         self.state
@@ -333,7 +338,18 @@ unsafe impl Sync for DiatomicWaker {}
 /// |  n  1  1  u  i  |  1  1  1  u  i  | (failure)
 ///
 fn try_lock(state: &AtomicUsize) -> Result<usize, ()> {
+    // This fence synchronizes with the other fence in `DiatomicWaker::register`
+    // and ensures that either the predicate set before the call to
+    // `DiatomicWaker::notify` will be visible after the call to
+    // `DiatomicWaker::register`, or the registered waker will be visible during
+    // the call to `DiatomicWaker::notify` (or both).
+    atomic::fence(Ordering::SeqCst);
+
     let mut old_state = state.load(Ordering::Relaxed);
+
+    if old_state & REGISTERED == 0 {
+        return Err(());
+    }
 
     loop {
         if old_state & (LOCKED | REGISTERED) == REGISTERED {
@@ -350,16 +366,15 @@ fn try_lock(state: &AtomicUsize) -> Result<usize, ()> {
             let new_state = old_state ^ xor_mask;
 
             // Ordering: Acquire is necessary to synchronize with the Release
-            // ordering in `register` so that the new waker, if any, is visible.
-            // Release ordering synchronizes with the Acquire and AcqRel RMWs in
-            // `register` and ensures that either the predicate set before the
-            // call to `notify` will be visible after the call to `register`, or
-            // the registered waker will be visible during the call to `notify`
-            // (or both).
+            // ordering in `DiatomicWaker::register` so that the new waker, if
+            // any, is visible. Release ordering is not necessary since the
+            // fence heading this function already ensures that any predicate
+            // set before the call to `DiatomicWaker::notify` will be visible
+            // after the call to `DiatomicWaker::register`.
             match state.compare_exchange_weak(
                 old_state,
                 new_state,
-                Ordering::AcqRel,
+                Ordering::Acquire,
                 Ordering::Relaxed,
             ) {
                 Ok(_) => return Ok(new_state),
@@ -368,19 +383,19 @@ fn try_lock(state: &AtomicUsize) -> Result<usize, ()> {
         } else {
             // Failure path.
 
-            // Set the `NOTIFICATION` bit if `REGISTERED` was set.
             let registered_bit = old_state & REGISTERED;
+
+            // Set the `NOTIFICATION` bit if `REGISTERED` was set.
             let new_state = old_state | (registered_bit << 2);
 
-            // Ordering: Release ordering synchronizes with the Acquire and
-            // AcqRel RMWs in `register` and ensures that either the predicate
-            // set before the call to `notify` will be visible after the call to
-            // `register`, or the registered waker will be visible during the
-            // call to `notify` (or both).
+            // Ordering: Relaxed ordering is sufficient since the fence heading
+            // this function ensures that any predicate set before the call to
+            // `DiatomicWaker::notify` will be visible after the call to
+            // `DiatomicWaker::register`.
             match state.compare_exchange_weak(
                 old_state,
                 new_state,
-                Ordering::Release,
+                Ordering::Relaxed,
                 Ordering::Relaxed,
             ) {
                 Ok(_) => return Err(()),
@@ -416,8 +431,8 @@ fn try_unlock(state: &AtomicUsize, mut old_state: usize) -> Result<(), usize> {
             let new_state = old_state & !LOCKED;
 
             // Ordering: Release is necessary to synchronize with the Acquire
-            // ordering in `register` and ensure that the waker call has
-            // completed before a new waker is stored.
+            // ordering in `DiatomicWaker::register` and ensure that the waker
+            // call has completed before a new waker is stored.
             match state.compare_exchange_weak(
                 old_state,
                 new_state,
@@ -440,7 +455,7 @@ fn try_unlock(state: &AtomicUsize, mut old_state: usize) -> Result<(), usize> {
             let new_state = old_state ^ xor_mask;
 
             // Ordering: Release is necessary to synchronize with the Acquire
-            // ordering in `register` and ensure that the call to
+            // ordering in `DiatomicWaker::register` and ensure that the call to
             // `Waker::wake_by_ref` has completed before a new waker is stored.
             // Acquire ordering is in turn necessary to ensure that any newly
             // registered waker is visible.
@@ -461,7 +476,7 @@ fn try_unlock(state: &AtomicUsize, mut old_state: usize) -> Result<(), usize> {
 #[derive(Debug)]
 pub struct WaitUntil<'a, P, T>
 where
-    P: FnMut() -> Option<T>,
+    P: FnMut() -> Option<T> + Unpin,
 {
     predicate: P,
     wake: &'a DiatomicWaker,
@@ -469,7 +484,7 @@ where
 
 impl<'a, P, T> WaitUntil<'a, P, T>
 where
-    P: FnMut() -> Option<T>,
+    P: FnMut() -> Option<T> + Unpin,
 {
     /// Creates a future associated to the specified wake that can be `await`ed
     /// until the specified predicate is satisfied.
@@ -478,11 +493,9 @@ where
     }
 }
 
-impl<P: FnMut() -> Option<T>, T> Unpin for WaitUntil<'_, P, T> {}
-
 impl<'a, P, T> Future for WaitUntil<'a, P, T>
 where
-    P: FnMut() -> Option<T>,
+    P: FnMut() -> Option<T> + Unpin,
 {
     type Output = T;
 
