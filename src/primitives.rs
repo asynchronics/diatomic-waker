@@ -258,7 +258,7 @@ impl DiatomicWaker {
     /// concurrently from multiple threads.
     pub unsafe fn wait_until<P, T>(&self, predicate: P) -> WaitUntil<'_, P, T>
     where
-        P: FnMut() -> Option<T> + Unpin,
+        P: FnMut() -> Option<T>,
     {
         WaitUntil::new(self, predicate)
     }
