@@ -10,16 +10,22 @@ use crate::loom_exports::sync::atomic::AtomicUsize;
 
 // The state of the waker is tracked by the following bit flags:
 //
-// * INDEX [I]: slot index of the current waker, if any (0 or 1)
+// * INDEX [I]: slot index of the current waker, if any (0 or 1),
 // * UPDATE [U]: an updated waker has been registered in the redundant slot at
-//   index 1 - INDEX
+//   index 1 - INDEX,
 // * REGISTERED [R]: a waker is registered and awaits a notification
 // * LOCKED [L]: a notifier has taken the notifier lock and is in the process of
-//   sending a notification
+//   sending a notification,
 // * NOTIFICATION [N]: a notifier has failed to take the lock when a waker was
 //   registered and has requested the notifier holding the lock to send a
 //   notification on its behalf (implies REGISTERED and LOCKED).
 //
+// The waker stored in the slot at INDEX ("current" waker) is shared between the
+// sink (entity which registers wakers) and the source that holds the notifier
+// lock (if any). For this reason, this waker may only be accessed by shared
+// reference. The waker at 1 - INDEX is exclusively owned by the sink, which is
+// free to mutate it.
+
 // Summary of valid states:
 //
 // |  N   L   R   U   I  |
@@ -33,7 +39,7 @@ const INDEX: usize = 0b00001;
 const UPDATE: usize = 0b00010;
 // [R] Indicates that a waker has been registered.
 const REGISTERED: usize = 0b00100;
-// [L] Indicates that a notifier holds exclusive access to the waker at INDEX
+// [L] Indicates that a notifier holds the notifier lock to the waker at INDEX.
 const LOCKED: usize = 0b01000;
 // [N] Indicates that a notifier has failed to acquire the lock and has
 // requested the notifier holding the lock to notify on its behalf.
@@ -315,11 +321,11 @@ unsafe impl Sync for DiatomicWaker {}
 ///
 /// * the `REGISTERED` flag is cleared, meaning that there is no need to wake
 /// and therefore no need to lock,
-/// * the lock is already taken, in which case the `NOTIFICATION` bit will be
-///   set if the `REGISTERED` bit is set.
+/// * the lock is already taken, in which case the `NOTIFICATION` flag will be
+///   set if the `REGISTERED` flag is set.
 ///
-/// If the acquisition of the lock succeeds, the `REGISTERED` flag is cleared.
-/// If additionally the `UPDATE` flag was set, it is cleared and `INDEX` is
+/// If acquisition of the lock succeeds, the `REGISTERED` flag is cleared. If
+/// additionally the `UPDATE` flag was set, it is cleared and `INDEX` is
 /// flipped.
 ///
 ///  Transition table:
@@ -393,7 +399,7 @@ fn try_lock(state: &AtomicUsize) -> Result<usize, ()> {
 /// Attempts to release the notifier lock and returns the current state upon
 /// failure.
 ///
-/// Release of the lock will fail if the `NOTIFICATION` flags is set because it
+/// Release of the lock will fail if the `NOTIFICATION` flag is set because it
 /// means that, after the lock was taken, the registering thread has requested
 /// to be notified again and another notifier has subsequently requested that
 /// such notification be sent on its behalf; if additionally the `UPDATE` flag

@@ -16,8 +16,8 @@ once. It can in particular be used as a very fast, single-consumer [eventcount]
 to turn a non-blocking data structure into an asynchronous one (see MPSC channel
 receiver example).
 
-This library is an offshot of [Asynchronix][asynchronix], an ongoing effort at a
-high performance asynchronous computation framework for system simulation.
+This library is an offshoot of [Asynchronix][asynchronix], an ongoing effort at
+a high performance asynchronous computation framework for system simulation.
 
 [atomic-waker]: https://docs.rs/atomic-waker/latest/atomic_waker/
 [eventcount]: https://www.1024cores.net/home/lock-free-algorithms/eventcounts
