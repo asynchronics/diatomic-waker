@@ -18,6 +18,10 @@
 //! yourself, but will then need to ensure by other means that waker
 //! registration cannot be performed concurrently.
 //!
+//! The API also provides a [`borrowing::BorrowingDiatomicWaker`],
+//! [`borrowing::WakeSink`] and [`borrowing::WakeSource`] that provides a safe,
+//! statically allocated `DiatomicWaker`, but introduces a lifetime.
+//!
 //! [atomic-waker]: https://docs.rs/atomic-waker/latest/atomic_waker/
 //! [eventcount]:
 //!     https://www.1024cores.net/home/lock-free-algorithms/eventcounts
@@ -146,6 +150,7 @@
 
 mod loom_exports;
 pub mod primitives;
+pub mod borrowing;
 
 use std::sync::Arc;
 use std::task::Waker;
