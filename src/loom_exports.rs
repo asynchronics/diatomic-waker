@@ -9,7 +9,7 @@ pub(crate) mod sync {
 #[allow(unused_imports)]
 pub(crate) mod sync {
     pub(crate) mod atomic {
-        pub(crate) use std::sync::atomic::AtomicUsize;
+        pub(crate) use core::sync::atomic::AtomicUsize;
     }
 }
 
@@ -20,11 +20,11 @@ pub(crate) mod cell {
 #[cfg(not(diatomic_waker_loom))]
 pub(crate) mod cell {
     #[derive(Debug)]
-    pub(crate) struct UnsafeCell<T>(std::cell::UnsafeCell<T>);
+    pub(crate) struct UnsafeCell<T>(core::cell::UnsafeCell<T>);
 
     impl<T> UnsafeCell<T> {
         pub(crate) const fn new(data: T) -> UnsafeCell<T> {
-            UnsafeCell(std::cell::UnsafeCell::new(data))
+            UnsafeCell(core::cell::UnsafeCell::new(data))
         }
         pub(crate) fn with<R>(&self, f: impl FnOnce(*const T) -> R) -> R {
             f(self.0.get())

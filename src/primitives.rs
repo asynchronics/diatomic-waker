@@ -1,9 +1,9 @@
 //! Primitives for task wakeup.
 
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::atomic::Ordering;
-use std::task::{Context, Poll, Waker};
+use core::future::Future;
+use core::pin::Pin;
+use core::sync::atomic::Ordering;
+use core::task::{Context, Poll, Waker};
 
 use crate::borrowing::{WakeSinkRef, WakeSourceRef};
 use crate::loom_exports::cell::UnsafeCell;
@@ -53,7 +53,7 @@ const NOTIFICATION: usize = 0b10000;
 /// ensuring that a `WakeSink` cannot be used concurrently from multiple
 /// threads. The only advantage of this primitive is that it does not require
 /// allocation on construction, unlike `WakeSink` and `WakeSource` which store a
-/// shared `DiatomicWaker` within an [`Arc`](std::sync::Arc).
+/// shared `DiatomicWaker` within an [`Arc`](core::sync::Arc).
 #[derive(Debug)]
 pub struct DiatomicWaker {
     /// A bit field for `INDEX`, `UPDATE`, `REGISTERED`, `LOCKED` and `NOTIFICATION`.
