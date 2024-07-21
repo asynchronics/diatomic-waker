@@ -2,7 +2,7 @@
 //!
 //! See the [crate-level documentation](crate) for usage.
 
-use std::task::Waker;
+use core::task::Waker;
 
 use crate::primitives::DiatomicWaker;
 use crate::primitives::WaitUntil;
