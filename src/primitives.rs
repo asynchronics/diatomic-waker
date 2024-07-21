@@ -63,7 +63,16 @@ pub struct DiatomicWaker {
 
 impl DiatomicWaker {
     /// Creates a new `DiatomicWaker`.
+    #[cfg(not(diatomic_waker_loom))]
     pub const fn new() -> Self {
+        Self {
+            state: AtomicUsize::new(0),
+            waker: [UnsafeCell::new(None), UnsafeCell::new(None)],
+        }
+    }
+
+    #[cfg(diatomic_waker_loom)]
+    pub fn new() -> Self {
         Self {
             state: AtomicUsize::new(0),
             waker: [UnsafeCell::new(None), UnsafeCell::new(None)],
