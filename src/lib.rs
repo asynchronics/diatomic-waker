@@ -148,9 +148,9 @@
 //!
 #![warn(missing_docs, missing_debug_implementations, unreachable_pub)]
 
+pub mod borrowing;
 mod loom_exports;
 pub mod primitives;
-pub mod borrowing;
 
 use std::sync::Arc;
 use std::task::Waker;

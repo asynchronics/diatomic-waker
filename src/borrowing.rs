@@ -7,14 +7,6 @@ use std::task::Waker;
 use crate::primitives::DiatomicWaker;
 use crate::primitives::WaitUntil;
 
-/// A safe, statically allocated `DiatomicWaker`
-///
-/// See the [crate-level documentation](crate) for usage.
-#[derive(Default, Debug)]
-pub struct BorrowingDiatomicWaker {
-    inner: DiatomicWaker,
-}
-
 /// An object that can await a notification from one or several
 /// [`WakeSource`](WakeSource)s.
 ///
@@ -22,7 +14,7 @@ pub struct BorrowingDiatomicWaker {
 #[derive(Debug)]
 pub struct WakeSinkRef<'a> {
     /// The shared data.
-    inner: &'a DiatomicWaker,
+    pub(crate) inner: &'a DiatomicWaker,
 }
 /// An object that can send a notification to a [`WakeSink`](WakeSink).
 ///
@@ -30,23 +22,7 @@ pub struct WakeSinkRef<'a> {
 #[derive(Clone, Debug)]
 pub struct WakeSourceRef<'a> {
     /// The shared data.
-    inner: &'a DiatomicWaker,
-}
-
-impl BorrowingDiatomicWaker {
-    /// Creates [`BorrowingDiatomicWaker`]
-    pub const fn new() -> Self {
-        Self {
-            inner: DiatomicWaker::new(),
-        }
-    }
-    /// Splits to [`WakeSink`] and [`WakeSource`]. Mutably borrows `self`,
-    /// ensuring that multiple [`WakeSink`] to the same [`DiatomicWaker`] are
-    /// impossible
-    pub fn split(&mut self) -> (WakeSinkRef, WakeSourceRef) {
-        let inner = &self.inner;
-        (WakeSinkRef { inner }, WakeSourceRef { inner })
-    }
+    pub(crate) inner: &'a DiatomicWaker,
 }
 
 impl WakeSourceRef<'_> {
