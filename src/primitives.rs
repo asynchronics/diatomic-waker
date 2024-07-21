@@ -5,6 +5,7 @@ use std::pin::Pin;
 use std::sync::atomic::Ordering;
 use std::task::{Context, Poll, Waker};
 
+use crate::borrowing::{WakeSinkRef, WakeSourceRef};
 use crate::loom_exports::cell::UnsafeCell;
 use crate::loom_exports::sync::atomic::AtomicUsize;
 
@@ -63,11 +64,28 @@ pub struct DiatomicWaker {
 
 impl DiatomicWaker {
     /// Creates a new `DiatomicWaker`.
+    #[cfg(not(diatomic_waker_loom))]
+    pub const fn new() -> Self {
+        Self {
+            state: AtomicUsize::new(0),
+            waker: [UnsafeCell::new(None), UnsafeCell::new(None)],
+        }
+    }
+
+    #[cfg(diatomic_waker_loom)]
     pub fn new() -> Self {
         Self {
             state: AtomicUsize::new(0),
             waker: [UnsafeCell::new(None), UnsafeCell::new(None)],
         }
+    }
+
+    /// Splits to [`WakeSinkRef`] and [`WakeSourceRef`]. Mutably borrows `self`,
+    /// ensuring that multiple [`WakeSinkRef`] to the same [`DiatomicWaker`] are
+    /// impossible
+    pub fn split(&mut self) -> (WakeSinkRef, WakeSourceRef) {
+        let inner = &*self;
+        (WakeSinkRef { inner }, WakeSourceRef { inner })
     }
 
     /// Sends a notification if a waker is registered.
