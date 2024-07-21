@@ -1,4 +1,4 @@
-//! Non-allcating, safe, statically allocated wrapper for `DiatomicWaker`.
+//! Non-allocating, safe, statically allocated wrapper for `DiatomicWaker`.
 //!
 //! See the [crate-level documentation](crate) for usage.
 
@@ -20,7 +20,7 @@ pub struct BorrowingDiatomicWaker {
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Debug)]
-pub struct WakeSink<'a> {
+pub struct WakeSinkRef<'a> {
     /// The shared data.
     inner: &'a DiatomicWaker,
 }
@@ -28,7 +28,7 @@ pub struct WakeSink<'a> {
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Clone, Debug)]
-pub struct WakeSource<'a> {
+pub struct WakeSourceRef<'a> {
     /// The shared data.
     inner: &'a DiatomicWaker,
 }
@@ -43,13 +43,13 @@ impl BorrowingDiatomicWaker {
     /// Splits to [`WakeSink`] and [`WakeSource`]. Mutably borrows `self`,
     /// ensuring that multiple [`WakeSink`] to the same [`DiatomicWaker`] are
     /// impossible
-    pub fn split(&mut self) -> (WakeSink, WakeSource) {
+    pub fn split(&mut self) -> (WakeSinkRef, WakeSourceRef) {
         let inner = &self.inner;
-        (WakeSink { inner }, WakeSource { inner })
+        (WakeSinkRef { inner }, WakeSourceRef { inner })
     }
 }
 
-impl WakeSource<'_> {
+impl WakeSourceRef<'_> {
     /// Notifies the sink if a waker is registered.
     #[inline]
     pub fn notify(&self) {
@@ -57,11 +57,11 @@ impl WakeSource<'_> {
     }
 }
 
-impl WakeSink<'_> {
+impl WakeSinkRef<'_> {
     /// Creates a new source.
     #[inline]
-    pub fn source(&self) -> WakeSource {
-        WakeSource { inner: self.inner }
+    pub fn source(&self) -> WakeSourceRef {
+        WakeSourceRef { inner: self.inner }
     }
 
     /// Registers a new waker.
