@@ -147,7 +147,7 @@
 //! ```
 //!
 #![warn(missing_docs, missing_debug_implementations, unreachable_pub)]
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
