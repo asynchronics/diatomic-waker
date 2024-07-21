@@ -152,11 +152,11 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "alloc")]
+mod arc_waker;
 pub mod borrowing;
 mod loom_exports;
 pub mod primitives;
-#[cfg(feature = "alloc")]
-pub mod arc_waker;
 
 #[cfg(feature = "alloc")]
 pub use arc_waker::{WakeSink, WakeSource};
@@ -166,6 +166,7 @@ pub use arc_waker::{WakeSink, WakeSource};
 mod tests {
     use super::*;
 
+    use core::task::Waker;
     use std::future::Future;
     use std::pin::Pin;
     use std::sync::atomic::Ordering;
