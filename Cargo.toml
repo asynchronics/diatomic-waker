@@ -16,7 +16,11 @@ description = """
 An async, lock-free synchronization primitive for task wakeup.
 """
 categories = ["asynchronous", "concurrency"]
-keywords = ["async", "waker", "atomic", "futures"]
+keywords = ["async", "waker", "atomic", "futures", "no_std", "no_alloc"]
+
+[features]
+default = ["alloc"]
+alloc = []
 
 [target.'cfg(diatomic_waker_loom)'.dependencies]
 waker-fn = "1.1"
