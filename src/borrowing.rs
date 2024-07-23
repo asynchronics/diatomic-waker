@@ -33,10 +33,10 @@ impl WakeSourceRef<'_> {
     }
 }
 
-impl WakeSinkRef<'_> {
+impl<'a> WakeSinkRef<'a> {
     /// Creates a new source.
     #[inline]
-    pub fn source(&self) -> WakeSourceRef {
+    pub fn source(&self) -> WakeSourceRef<'a> {
         WakeSourceRef { inner: self.inner }
     }
 
