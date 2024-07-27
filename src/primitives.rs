@@ -338,7 +338,7 @@ unsafe impl Sync for DiatomicWaker {}
 /// Acquisition of the lock will fail in the following cases:
 ///
 /// * the `REGISTERED` flag is cleared, meaning that there is no need to wake
-/// and therefore no need to lock,
+///   and therefore no need to lock,
 /// * the lock is already taken, in which case the `NOTIFICATION` flag will be
 ///   set if the `REGISTERED` flag is set.
 ///
