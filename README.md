@@ -31,8 +31,14 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-diatomic-waker = "0.1.0"
+diatomic-waker = "0.2.0"
 ```
+
+## Features flags
+
+By default, this crate enables the `alloc` feature to provide the owned
+`WakeSink` and `WakeSource`. It can be made `no-std`-compatible by specifying
+`default-features = false`.
 
 ## Example
 
