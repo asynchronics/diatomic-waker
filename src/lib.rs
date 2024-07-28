@@ -148,6 +148,7 @@
 //!
 #![warn(missing_docs, missing_debug_implementations, unreachable_pub)]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
