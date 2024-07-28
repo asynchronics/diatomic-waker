@@ -26,6 +26,9 @@ alloc = []
 waker-fn = "1.1"
 loom = "0.5"
 
+[dev-dependencies]
+pollster = "0.3"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(diatomic_waker_loom)'] }
 

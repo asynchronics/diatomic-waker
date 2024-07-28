@@ -8,7 +8,7 @@ An async, fast synchronization primitives for task wakeup.
 
 ## Overview
 
-Diatomic Waker is similar to [AtomicWaker][atomic-waker] in that it enables
+`diatomic-waker` is similar to [`atomic-waker`][atomic-waker] in that it enables
 concurrent updates and notifications to a wrapped `Waker`. Unlike the latter,
 however, it does not use spinlocks[^spinlocks] and is significantly faster, in
 particular when the consumer needs to be notified periodically rather than just
@@ -115,8 +115,8 @@ A distinguishing feature of `diatomic-waker` is its use of two waker storage
 slots (hence its name) rather than one. This makes it possible to achieve
 lock-freedom in situations where waker registration and notification are
 performed concurrently. In the case of concurrent notifications, even though one
-notifier does hold a notification lock, others notifiers never block: they
-merely request the holder of the lock to send another notification, which is a
+notifier does hold a notification lock, other notifiers never block: they merely
+request the holder of the lock to send another notification, which is a
 wait-free operation.
 
 Compared to `atomic-waker`, dummy notifications (with no waker registered) are
