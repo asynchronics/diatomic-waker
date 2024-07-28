@@ -1,33 +1,23 @@
-use alloc::sync::Arc;
 use core::task::Waker;
 
-use crate::DiatomicWaker;
-use crate::WaitUntil;
+use crate::{DiatomicWaker, WaitUntil};
 
-/// An owned object that can await notifications from one or several
-/// [`WakeSource`](WakeSource)s.
+/// A non-owned object that can await notifications from one or several
+/// [`WakeSourceRef`](WakeSourceRef)s.
 ///
 /// See the [crate-level documentation](crate) for usage.
-#[derive(Debug, Default)]
-pub struct WakeSink {
+#[derive(Debug)]
+pub struct WakeSinkRef<'a> {
     /// The shared data.
-    inner: Arc<DiatomicWaker>,
+    pub(crate) inner: &'a DiatomicWaker,
 }
 
-impl WakeSink {
-    /// Creates a new sink.
-    pub fn new() -> Self {
-        Self {
-            inner: Arc::new(DiatomicWaker::new()),
-        }
-    }
-
-    /// Creates an owned source.
+impl<'a> WakeSinkRef<'a> {
+    /// Creates a new `WakeSourceRef` associated to this sink with the same
+    /// lifetime.
     #[inline]
-    pub fn source(&self) -> WakeSource {
-        WakeSource {
-            inner: self.inner.clone(),
-        }
+    pub fn source_ref(&self) -> WakeSourceRef<'a> {
+        WakeSourceRef { inner: self.inner }
     }
 
     /// Registers a new waker.
@@ -39,23 +29,25 @@ impl WakeSink {
     pub fn register(&mut self, waker: &Waker) {
         // Safety: `DiatomicWaker::register`, `DiatomicWaker::unregister` and
         // `DiatomicWaker::wait_until` cannot be used concurrently from multiple
-        // thread since `WakeSink` does not implement `Clone` and the wrappers
-        // of the above methods require exclusive ownership to `WakeSink`.
+        // thread since `WakeSinkRef` does not implement `Clone` and the
+        // wrappers of the above methods require exclusive ownership to
+        // `WakeSinkRef`.
         unsafe { self.inner.register(waker) };
     }
 
     /// Unregisters the waker.
     ///
     /// After the waker is unregistered, subsequent calls to
-    /// `WakeSource::notify` will be ignored.
+    /// `WakeSourceRef::notify` will be ignored.
     ///
     /// Note that the previously-registered waker (if any) remains cached.
     #[inline]
     pub fn unregister(&mut self) {
         // Safety: `DiatomicWaker::register`, `DiatomicWaker::unregister` and
         // `DiatomicWaker::wait_until` cannot be used concurrently from multiple
-        // thread since `WakeSink` does not implement `Clone` and the wrappers
-        // of the above methods require exclusive ownership to `WakeSink`.
+        // thread since `WakeSinkRef` does not implement `Clone` and the
+        // wrappers of the above methods require exclusive ownership to
+        // `WakeSinkRef`.
         unsafe { self.inner.unregister() };
     }
 
@@ -70,22 +62,24 @@ impl WakeSink {
     {
         // Safety: `DiatomicWaker::register`, `DiatomicWaker::unregister` and
         // `DiatomicWaker::wait_until` cannot be used concurrently from multiple
-        // thread since `WakeSink` does not implement `Clone` and the wrappers
-        // of the above methods require exclusive ownership to `WakeSink`.
+        // thread since `WakeSinkRef` does not implement `Clone` and the
+        // wrappers of the above methods require exclusive ownership to
+        // `WakeSinkRef`.
         unsafe { self.inner.wait_until(predicate) }
     }
 }
 
-/// An owned object that can send notifications to a [`WakeSink`](WakeSink).
+/// A non-owned object that can send notifications to a
+/// [`WakeSinkRef`](WakeSinkRef).
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Clone, Debug)]
-pub struct WakeSource {
+pub struct WakeSourceRef<'a> {
     /// The shared data.
-    inner: Arc<DiatomicWaker>,
+    pub(crate) inner: &'a DiatomicWaker,
 }
 
-impl WakeSource {
+impl WakeSourceRef<'_> {
     /// Notifies the sink if a waker is registered.
     ///
     /// This automatically unregisters any waker that may have been previously

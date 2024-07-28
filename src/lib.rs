@@ -1,6 +1,6 @@
 //! Async, fast synchronization primitives for task wakeup.
 //!
-//! `diatomic-waker` is similar to [Atomic Waker][atomic-waker] in that it
+//! `diatomic-waker` is similar to [`atomic-waker`][atomic-waker] in that it
 //! enables concurrent updates and notifications to a wrapped `Waker`. Unlike
 //! the latter, however, it does not use spinlocks[^spinlocks] and is faster, in
 //! particular when the consumer is notified periodically rather than just once.
@@ -8,25 +8,28 @@
 //! turn a non-blocking data structure into an asynchronous one (see MPSC
 //! channel receiver example).
 //!
-//! The API distinguishes between the entity that registers wakers
-//! ([`WakeSink`]) and the possibly many entities that notify the waker
-//! ([`WakeSource`]).
+//! The API distinguishes between the entity that registers wakers ([`WakeSink`]
+//! or [`WakeSinkRef`]) and the possibly many entities that notify the waker
+//! ([`WakeSource`]s or [`WakeSourceRef`]s).
 //!
-//! Note that `WakeSink` and `WakeSource` readily store a shared
-//! [`DiatomicWaker`](primitives::DiatomicWaker) within an
-//! [`Arc`](std::sync::Arc). You may instead elect to allocate a `DiatomicWaker`
-//! yourself, but will then need to ensure by other means that waker
-//! registration cannot be performed concurrently.
-//!
-//! The API also provides a [`borrowing::BorrowingDiatomicWaker`],
-//! [`borrowing::WakeSink`] and [`borrowing::WakeSource`] that provides a safe,
-//! statically allocated `DiatomicWaker`, but introduces a lifetime.
+//! Most users will prefer to use [`WakeSink`] and [`WakeSource`], which readily
+//! store a shared [`DiatomicWaker`] within an `Arc`. You may otherwise elect to
+//! allocate a [`DiatomicWaker`] yourself, but will then need to use the
+//! lifetime-bounded [`WakeSinkRef`] and [`WakeSourceRef`], or ensure by other
+//! means that waker registration is not performed concurrently.
 //!
 //! [atomic-waker]: https://docs.rs/atomic-waker/latest/atomic_waker/
 //! [eventcount]:
 //!     https://www.1024cores.net/home/lock-free-algorithms/eventcounts
 //! [^spinlocks]: The implementation of [AtomicWaker][atomic-waker] yields to the
 //!     runtime on contention, which is in effect an executor-mediated spinlock.
+//!
+//! # Features flags
+//!
+//! By default, this crate enables the `alloc` feature to provide the owned
+//! [`WakeSink`] and [`WakeSource`]. It can be made `no-std`-compatible by
+//! specifying `default-features = false`.
+//!
 //!
 //! # Examples
 //!
@@ -99,7 +102,9 @@
 //! In some case, it may be necessary to use the lower-level
 //! [`register`](WakeSink::register) and [`unregister`](WakeSink::unregister)
 //! methods rather than the [`wait_until`](WakeSink::wait_until) convenience
-//! method. This is how the behavior of the above `recv` method could be
+//! method.
+//!
+//! This is how the behavior of the above `recv` method could be
 //! reproduced with a hand-coded future:
 //!
 //! ```
@@ -145,21 +150,101 @@
 //!     }
 //! }
 //! ```
-//!
 #![warn(missing_docs, missing_debug_implementations, unreachable_pub)]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg_hide))]
+#![cfg_attr(docsrs, doc(cfg_hide(diatomic_waker_loom)))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
 mod arc_waker;
-pub mod borrowing;
+mod borrowed_waker;
 mod loom_exports;
+#[deprecated(
+    since = "0.2.0",
+    note = "items from this module are now available in the root module"
+)]
 pub mod primitives;
+mod waker;
 
 #[cfg(feature = "alloc")]
 pub use arc_waker::{WakeSink, WakeSource};
+pub use borrowed_waker::{WakeSinkRef, WakeSourceRef};
+pub use waker::{DiatomicWaker, WaitUntil};
+
+/// Tests.
+#[cfg(all(test, not(diatomic_waker_loom)))]
+mod tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::thread;
+    use std::time::Duration;
+
+    use pollster::block_on;
+
+    use super::*;
+
+    #[test]
+    fn waker_wait_until() {
+        let mut sink = WakeSink::new();
+        let source = sink.source();
+        static FLAG: AtomicBool = AtomicBool::new(false);
+
+        let t1 = thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(10));
+            source.notify(); // force a spurious notification
+            std::thread::sleep(Duration::from_millis(10));
+            FLAG.store(true, Ordering::Relaxed);
+            source.notify();
+        });
+
+        let t2 = thread::spawn(move || {
+            block_on(sink.wait_until(|| {
+                if FLAG.load(Ordering::Relaxed) {
+                    Some(())
+                } else {
+                    None
+                }
+            }));
+
+            assert!(FLAG.load(Ordering::Relaxed));
+        });
+
+        t1.join().unwrap();
+        t2.join().unwrap();
+    }
+
+    #[test]
+    fn waker_ref_wait_until() {
+        let mut w = DiatomicWaker::new();
+        let mut sink = w.sink_ref();
+        let source = sink.source_ref();
+        static FLAG: AtomicBool = AtomicBool::new(false);
+
+        thread::scope(|s| {
+            s.spawn(move || {
+                std::thread::sleep(Duration::from_millis(10));
+                source.notify(); // force a spurious notification
+                std::thread::sleep(Duration::from_millis(10));
+                FLAG.store(true, Ordering::Relaxed);
+                source.notify();
+            });
+
+            s.spawn(move || {
+                block_on(sink.wait_until(|| {
+                    if FLAG.load(Ordering::Relaxed) {
+                        Some(())
+                    } else {
+                        None
+                    }
+                }));
+
+                assert!(FLAG.load(Ordering::Relaxed));
+            });
+        });
+    }
+}
 
 /// Loom tests.
 #[cfg(all(test, diatomic_waker_loom))]
