@@ -1,11 +1,11 @@
-#[cfg(diatomic_waker_loom)]
+#[cfg(feature = "diatomic-waker-loom")]
 #[allow(unused_imports)]
 pub(crate) mod sync {
     pub(crate) mod atomic {
         pub(crate) use loom::sync::atomic::AtomicUsize;
     }
 }
-#[cfg(not(diatomic_waker_loom))]
+#[cfg(not(feature = "diatomic-waker-loom"))]
 #[allow(unused_imports)]
 pub(crate) mod sync {
     pub(crate) mod atomic {
@@ -13,11 +13,11 @@ pub(crate) mod sync {
     }
 }
 
-#[cfg(diatomic_waker_loom)]
+#[cfg(feature = "diatomic-waker-loom")]
 pub(crate) mod cell {
     pub(crate) use loom::cell::UnsafeCell;
 }
-#[cfg(not(diatomic_waker_loom))]
+#[cfg(not(feature = "diatomic-waker-loom"))]
 pub(crate) mod cell {
     #[derive(Debug)]
     pub(crate) struct UnsafeCell<T>(core::cell::UnsafeCell<T>);

@@ -21,16 +21,14 @@ keywords = ["async", "waker", "atomic", "no_std", "no_alloc"]
 [features]
 default = ["alloc"]
 alloc = []
+diatomic-waker-loom = ["dep:loom", "dep:waker-fn"]
 
-[target.'cfg(diatomic_waker_loom)'.dependencies]
-waker-fn = "1.1"
-loom = "0.7"
+[dependencies]
+waker-fn = { version = "1.1", optional = true }
+loom = { version = "0.7", optional = true }
 
 [dev-dependencies]
 pollster = "0.3"
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(diatomic_waker_loom)'] }
 
 [package.metadata.docs.rs]
 all-features = true

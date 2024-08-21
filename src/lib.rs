@@ -153,7 +153,6 @@
 #![warn(missing_docs, missing_debug_implementations, unreachable_pub)]
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg_hide))]
-#![cfg_attr(docsrs, doc(cfg_hide(diatomic_waker_loom)))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -175,7 +174,7 @@ pub use borrowed_waker::{WakeSinkRef, WakeSourceRef};
 pub use waker::{DiatomicWaker, WaitUntil};
 
 /// Tests.
-#[cfg(all(test, not(diatomic_waker_loom)))]
+#[cfg(all(test, not(feature = "diatomic-waker-loom")))]
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::thread;
@@ -247,7 +246,7 @@ mod tests {
 }
 
 /// Loom tests.
-#[cfg(all(test, diatomic_waker_loom))]
+#[cfg(all(test, feature = "diatomic-waker-loom"))]
 mod tests {
     use super::*;
 
