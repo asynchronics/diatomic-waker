@@ -24,7 +24,7 @@ alloc = []
 
 [target.'cfg(diatomic_waker_loom)'.dependencies]
 waker-fn = "1.1"
-loom = "0.5"
+loom = "0.7"
 
 [dev-dependencies]
 pollster = "0.3"
