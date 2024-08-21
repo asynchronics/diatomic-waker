@@ -31,7 +31,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-diatomic-waker = "0.2.0"
+diatomic-waker = "0.2.1"
 ```
 
 ## Features flags

@@ -1,3 +1,10 @@
+# 0.2.1 (2024-08-21)
+
+- Upgrade `loom` ([#7]).
+
+[#7]: https://github.com/asynchronics/diatomic-waker/pull/7
+
+
 # 0.2.0 (2024-07-28)
 
 - Remove unnecessary `Unpin` bound on `WaitUntil`'s closures.
