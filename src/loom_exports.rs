@@ -1,10 +1,9 @@
-
 pub(crate) mod sync {
     pub(crate) mod atomic {
-        #[cfg(all(test, feature = "unittest-with-loom"))]
-        pub(crate) use loom::sync::atomic::AtomicUsize;
         #[cfg(not(all(test, feature = "unittest-with-loom")))]
         pub(crate) use core::sync::atomic::AtomicUsize;
+        #[cfg(all(test, feature = "unittest-with-loom"))]
+        pub(crate) use loom::sync::atomic::AtomicUsize;
     }
 }
 
