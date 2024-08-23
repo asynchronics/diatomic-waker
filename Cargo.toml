@@ -21,7 +21,7 @@ keywords = ["async", "waker", "atomic", "no_std", "no_alloc"]
 [features]
 default = ["alloc"]
 alloc = []
-unittest-with-loom = []
+loom-tests = []
 
 [dev-dependencies]
 waker-fn = "1.1"
