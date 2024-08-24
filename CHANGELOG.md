@@ -1,3 +1,13 @@
+# 0.2.2 (2024-08-24)
+
+- Make `loom` a `dev-dependency` to prevent transitive dependencies issues ([#9], [#11]).
+- Upgrade CI checkout action ([#10]).
+
+[#9]: https://github.com/asynchronics/diatomic-waker/pull/9
+[#10]: https://github.com/asynchronics/diatomic-waker/pull/10
+[#11]: https://github.com/asynchronics/diatomic-waker/pull/11
+
+
 # 0.2.1 (2024-08-21)
 
 - Upgrade `loom` ([#7]).
