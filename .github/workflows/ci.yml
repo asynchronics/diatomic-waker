@@ -55,9 +55,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run cargo test (Loom)
-        run: cargo test --lib --release
+        run: cargo test --lib --release --all-features
         env:
-          RUSTFLAGS: --cfg diatomic_waker_loom
           LOOM_MAX_PREEMPTIONS: 2
 
   lints:
