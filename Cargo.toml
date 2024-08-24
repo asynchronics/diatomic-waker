@@ -23,9 +23,11 @@ default = ["alloc"]
 alloc = []
 
 [dev-dependencies]
+pollster = "0.3"
+
+[target.'cfg(diatomic_waker_loom)'.dev-dependencies]
 waker-fn = "1.1"
 loom = "0.7"
-pollster = "0.3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(diatomic_waker_loom)'] }
