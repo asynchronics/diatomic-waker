@@ -3,7 +3,7 @@ use core::task::Waker;
 use crate::{DiatomicWaker, WaitUntil};
 
 /// A non-owned object that can await notifications from one or several
-/// [`WakeSourceRef`](WakeSourceRef)s.
+/// [`WakeSourceRef`]s.
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Debug)]
@@ -69,8 +69,7 @@ impl<'a> WakeSinkRef<'a> {
     }
 }
 
-/// A non-owned object that can send notifications to a
-/// [`WakeSinkRef`](WakeSinkRef).
+/// A non-owned object that can send notifications to a [`WakeSinkRef`].
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Clone, Debug)]

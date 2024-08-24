@@ -5,7 +5,7 @@ use crate::DiatomicWaker;
 use crate::WaitUntil;
 
 /// An owned object that can await notifications from one or several
-/// [`WakeSource`](WakeSource)s.
+/// [`WakeSource`]s.
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Debug, Default)]
@@ -76,7 +76,7 @@ impl WakeSink {
     }
 }
 
-/// An owned object that can send notifications to a [`WakeSink`](WakeSink).
+/// An owned object that can send notifications to a [`WakeSink`].
 ///
 /// See the [crate-level documentation](crate) for usage.
 #[derive(Clone, Debug)]
