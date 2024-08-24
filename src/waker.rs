@@ -68,7 +68,7 @@ pub struct DiatomicWaker {
 
 impl DiatomicWaker {
     /// Creates a new `DiatomicWaker`.
-    #[cfg(not(all(test, feature = "loom-tests")))]
+    #[cfg(not(all(test, diatomic_waker_loom)))]
     pub const fn new() -> Self {
         Self {
             state: AtomicUsize::new(0),
@@ -76,7 +76,7 @@ impl DiatomicWaker {
         }
     }
 
-    #[cfg(all(test, feature = "loom-tests"))]
+    #[cfg(all(test, diatomic_waker_loom))]
     pub fn new() -> Self {
         Self {
             state: AtomicUsize::new(0),

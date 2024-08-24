@@ -174,7 +174,7 @@ pub use borrowed_waker::{WakeSinkRef, WakeSourceRef};
 pub use waker::{DiatomicWaker, WaitUntil};
 
 /// Tests.
-#[cfg(all(test, not(feature = "loom-tests")))]
+#[cfg(all(test, not(diatomic_waker_loom)))]
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::thread;
@@ -246,7 +246,7 @@ mod tests {
 }
 
 /// Loom tests.
-#[cfg(all(test, feature = "loom-tests"))]
+#[cfg(all(test, diatomic_waker_loom))]
 mod tests {
     use super::*;
 

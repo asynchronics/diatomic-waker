@@ -1,17 +1,17 @@
 pub(crate) mod sync {
     pub(crate) mod atomic {
-        #[cfg(not(all(test, feature = "loom-tests")))]
+        #[cfg(not(all(test, diatomic_waker_loom)))]
         pub(crate) use core::sync::atomic::AtomicUsize;
-        #[cfg(all(test, feature = "loom-tests"))]
+        #[cfg(all(test, diatomic_waker_loom))]
         pub(crate) use loom::sync::atomic::AtomicUsize;
     }
 }
 
-#[cfg(all(test, feature = "loom-tests"))]
+#[cfg(all(test, diatomic_waker_loom))]
 pub(crate) mod cell {
     pub(crate) use loom::cell::UnsafeCell;
 }
-#[cfg(not(all(test, feature = "loom-tests")))]
+#[cfg(not(all(test, diatomic_waker_loom)))]
 pub(crate) mod cell {
     #[derive(Debug)]
     pub(crate) struct UnsafeCell<T>(core::cell::UnsafeCell<T>);

@@ -16,3 +16,5 @@ jobs:
 
       - name: Run cargo test (Loom)
         run: cargo test --lib --release --all-features
+        env:
+          RUSTFLAGS: --cfg diatomic_waker_loom
