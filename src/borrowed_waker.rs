@@ -58,7 +58,7 @@ impl<'a> WakeSinkRef<'a> {
     #[inline]
     pub fn wait_until<P, T>(&mut self, predicate: P) -> WaitUntil<'_, P, T>
     where
-        P: FnMut() -> Option<T> + Unpin,
+        P: FnMut() -> Option<T>,
     {
         // Safety: `DiatomicWaker::register`, `DiatomicWaker::unregister` and
         // `DiatomicWaker::wait_until` cannot be used concurrently from multiple
