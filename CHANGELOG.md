@@ -1,3 +1,10 @@
+# 0.2.3 (2024-09-08)
+
+- Remove `Unpin` bound on `wait_until` methods ([#15]).
+
+[#15]: https://github.com/asynchronics/diatomic-waker/pull/15
+
+
 # 0.2.2 (2024-08-24)
 
 - Make `loom` a `dev-dependency` to prevent transitive dependencies issues ([#9], [#11]).
