@@ -88,6 +88,6 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
 
       - name: Run cargo doc
-        run: cargo +nightly doc --no-deps --document-private-items --all-features
+        run: cargo doc --no-deps --document-private-items --all-features
         env:
             RUSTDOCFLAGS: --cfg docsrs -Dwarnings
